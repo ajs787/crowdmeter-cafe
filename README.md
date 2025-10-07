@@ -1,4 +1,4 @@
-# RU Cafe Hopping - Auto Setup
+# RU Cafe Hopping?
 
 ## Start Options!
 
