@@ -1,6 +1,6 @@
-# CrowdMeter Backend - Auto Setup
+# RU Cafe Hopping - Auto Setup
 
-## Quick Start Options
+## Start Options!
 
 ### Option 1: Automatic Setup (Recommended)
 ```bash
