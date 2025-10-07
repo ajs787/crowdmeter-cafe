@@ -1,43 +1,52 @@
 import express from "express";
 import Cafe from "../models/Cafe.js";
-import { searchPlaceByText, getPlaceDetails, buildPhotoUrl, mapLinks } from "../services/google.js";
-import { getLivePopularityByPlaceUrl } from "../services/popular.js";
+import { searchPlace, getPlaceDetails, buildPhotoUrl, mapLinks } from "../services/google.js";
+import { getLivePopularity } from "../services/popular.js";
 
 const router = express.Router();
 
-// seed list (rutgers nb campus + easton ave)
-// add/remove freely — these are text queries for initial placeId resolution
-const SEED_NAMES = [
-  "Hidden Grounds Coffee College Ave New Brunswick",
-  "Hatch44 Cafe New Brunswick",
-  "Khyber Coffee and Tea New Brunswick",
-  "Cafe Zio New Brunswick",
-  "Semicolon Cafe New Brunswick",
-  "Efes Cafe New Brunswick",
-  "Panera Bread College Ave New Brunswick",
-  "Legal Grounds Cafe Rutgers",
-  "Kaito Bubble Tea New Brunswick",
-  "Birdies and Lattes New Brunswick",
-  "Starbucks College Ave New Brunswick"
+const SEED = [
+  "Hidden Grounds Coffee New Brunswick NJ",
+  "Hatch44 Cafe New Brunswick NJ",
+  "Khyber Coffee and Tea New Brunswick NJ",
+  "Cafe Zio New Brunswick NJ",
+  "Semicolon Cafe New Brunswick NJ",
+  "Efes Cafe New Brunswick NJ",
+  "Panera Bread College Ave New Brunswick NJ",
+  "Legal Grounds Cafe Rutgers NJ",
+  "Kaito Bubble Tea New Brunswick NJ",
+  "Birdies and Lattes New Brunswick NJ",
+  "Starbucks College Ave New Brunswick NJ"
 ];
 
-// 1) init seed (idempotent)
+// seed route
 router.post("/seed", async (_req, res) => {
-  const created = [];
-  for (const q of SEED_NAMES) {
+  console.log("seeding cafes:", SEED.length);
+  const added = [];
+  
+  for (const name of SEED) {
     try {
-      const hit = await searchPlaceByText(q);
-      if (!hit) continue;
-      const details = await getPlaceDetails(hit.place_id);
-      const photoRef = details.photos?.[0]?.photo_reference;
-      const photoUrl = photoRef ? buildPhotoUrl(photoRef, 1200) : null;
-      const { mapsUrl, appleMapsUrl } = mapLinks(details.name, details.geometry.location.lat, details.geometry.location.lng);
+      const place = await searchPlace(name);
+
+      if (!place) {
+        console.warn(`No place found for: ${name}`);
+        continue;
+      }
+
+      console.log(`Found: ${place.name} (${place.place_id})`);
+
+      const details = await getPlaceDetails(place.place_id);
+      const photoUrl = buildPhotoUrl(details.photos?.[0]?.photo_reference);
+      const { mapsUrl, appleMapsUrl } = mapLinks(
+        details.name,
+        details.geometry.location.lat,
+        details.geometry.location.lng
+      );
 
       await Cafe.updateOne(
         { placeId: details.place_id },
         {
           $set: {
-            placeId: details.place_id,
             name: details.name,
             address: details.formatted_address,
             lat: details.geometry.location.lat,
@@ -45,44 +54,42 @@ router.post("/seed", async (_req, res) => {
             photoUrl,
             mapsUrl,
             appleMapsUrl,
+            lastUpdated: new Date(0),
           },
-          $setOnInsert: { lastUpdated: new Date(0) }
         },
         { upsert: true }
       );
-      created.push(details.name);
-    } catch (e) {
-      console.error("seed error", q, e.message);
+
+      added.push(details.name);
+    } catch (err) {
+      console.error("seed error for", name, ":", err.message);
     }
   }
-  res.json({ ok: true, created });
+
+  console.log("done seeding, added:", added.length);
+  res.json({ ok: true, added });
 });
 
-// 2) refresh live popularity for all cafes
+
+// refresh live busyness
 router.post("/refresh", async (_req, res) => {
   const cafes = await Cafe.find({});
   let updated = 0;
   for (const c of cafes) {
-    try {
-      // construct a stable place URL (details.url is good if available)
-      const mapsPlaceUrl = `https://www.google.com/maps/place/?q=place_id:${c.placeId}`;
-      const live = await getLivePopularityByPlaceUrl(mapsPlaceUrl);
-      await Cafe.updateOne(
-        { _id: c._id },
-        { $set: { currentPopularity: live, lastUpdated: new Date() } }
-      );
-      updated++;
-    } catch (e) {
-      console.error("refresh error", c.name, e.message);
-    }
+    const live = await getLivePopularity(c.placeId);
+    await Cafe.updateOne(
+      { _id: c._id },
+      { $set: { currentPopularity: live, lastUpdated: new Date() } }
+    );
+    updated++;
   }
   res.json({ ok: true, updated });
 });
 
-// 3) list cafes for frontend
+// list all cafes
 router.get("/", async (_req, res) => {
-  const docs = await Cafe.find({}).sort({ name: 1 }).lean();
-  res.json(docs);
+  const cafes = await Cafe.find({}).sort({ name: 1 }).lean();
+  res.json(cafes);
 });
 
 export default router;

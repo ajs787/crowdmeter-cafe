@@ -3,3 +3,18 @@
 @tailwind utilities;
 
 html, body, #root { height: 100%; background: #0e0f12; color: #e5e7eb; }
+
+@keyframes mega-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(2);
+    opacity: 0.1;
+  }
+}
+
+.animate-mega-pulse {
+  animation: mega-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
