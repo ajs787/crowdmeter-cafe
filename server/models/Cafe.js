@@ -10,6 +10,9 @@ const CafeSchema = new mongoose.Schema({
   mapsUrl: String,
   appleMapsUrl: String,
   currentPopularity: Number,
+  isLiveData: { type: Boolean, default: false },
+  isEstimatedData: { type: Boolean, default: false },
+  dataAvailable: { type: Boolean, default: false },
   lastUpdated: Date,
 });
 

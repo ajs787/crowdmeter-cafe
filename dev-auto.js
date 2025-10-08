@@ -1,16 +1,34 @@
 import { spawn } from 'child_process';
 import { setTimeout } from 'timers/promises';
 
-console.log('Starting CrowdMeter Development Environment...\n');
+console.log('🚀 Starting CrowdMeter Development Environment...\n');
 
-// Start the backend server
-const server = spawn('npm', ['run', 'dev'], {
-  stdio: ['inherit', 'inherit', 'inherit'],
-  shell: true
+// Start the Flask populartimes server
+console.log('🐍 Starting Flask populartimes server...');
+const flaskServer = spawn('python3', ['app.py'], {
+  stdio: ['inherit', 'pipe', 'pipe'],
+  shell: true,
+  cwd: process.cwd()
 });
 
-// Wait for server to start
-await setTimeout(3000);
+flaskServer.stdout.on('data', (data) => {
+  console.log(`[Flask] ${data}`);
+});
+
+flaskServer.stderr.on('data', (data) => {
+  console.log(`[Flask Error] ${data}`);
+});
+
+// Start the backend server
+console.log('⚡ Starting Node.js backend server...');
+const server = spawn('node', ['server/index.js'], {
+  stdio: ['inherit', 'inherit', 'inherit'],
+  shell: true,
+  cwd: process.cwd()
+});
+
+// Wait for servers to start
+await setTimeout(5000);
 
 console.log('\nSeeding cafe data...');
 try {
@@ -118,6 +136,7 @@ process.on('SIGINT', () => {
   console.log('\n👋 Shutting down...');
   clearTimeout(refreshTimeout);
   server.kill();
+  flaskServer.kill();
   process.exit(0);
 });
 

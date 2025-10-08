@@ -9,14 +9,13 @@ const SEED = [
   "Hidden Grounds Coffee New Brunswick NJ",
   "Hatch44 Cafe New Brunswick NJ",
   "Khyber Coffee and Tea New Brunswick NJ",
-  "Cafe Zio New Brunswick NJ",
   "Semicolon Cafe New Brunswick NJ",
   "Efes Cafe New Brunswick NJ",
   "Panera Bread College Ave New Brunswick NJ",
-  "Legal Grounds Cafe Rutgers NJ",
   "Kaito Bubble Tea New Brunswick NJ",
   "Birdies and Lattes New Brunswick NJ",
   "Starbucks College Ave New Brunswick NJ"
+  // Removed: Cafe Zio & Legal Grounds Cafe (no Google popularity data available)
 ];
 
 // seed route
@@ -76,10 +75,18 @@ router.post("/refresh", async (_req, res) => {
   const cafes = await Cafe.find({});
   let updated = 0;
   for (const c of cafes) {
-    const live = await getLivePopularity(c.placeId);
+    const popularityData = await getLivePopularity(c.placeId);
     await Cafe.updateOne(
       { _id: c._id },
-      { $set: { currentPopularity: live, lastUpdated: new Date() } }
+      { 
+        $set: { 
+          currentPopularity: popularityData.value,
+          isLiveData: popularityData.isLive,
+          isEstimatedData: popularityData.isEstimated,
+          dataAvailable: popularityData.dataAvailable,
+          lastUpdated: new Date() 
+        } 
+      }
     );
     updated++;
   }
@@ -90,6 +97,12 @@ router.post("/refresh", async (_req, res) => {
 router.get("/", async (_req, res) => {
   const cafes = await Cafe.find({}).sort({ name: 1 }).lean();
   res.json(cafes);
+});
+
+// delete cafes without any data
+router.delete("/no-data", async (_req, res) => {
+  const result = await Cafe.deleteMany({ dataAvailable: false });
+  res.json({ ok: true, deleted: result.deletedCount });
 });
 
 export default router;
