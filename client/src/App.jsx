@@ -93,7 +93,7 @@ export default function App() {
           <p className="text-white/60 mt-1">know when to go, before you go.</p>
           {lastUpdated && (
             <p className="text-white/40 text-xs mt-2">
-              🔄 Auto-refreshing • Last updated: {lastUpdated.toLocaleTimeString()}
+              Auto-refreshing • Last updated: {lastUpdated.toLocaleTimeString()}
               {nextRefresh && ` • Next: ${nextRefresh.toLocaleTimeString()}`}
             </p>
           )}
