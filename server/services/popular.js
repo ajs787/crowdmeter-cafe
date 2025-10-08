@@ -1,22 +1,12 @@
-import puppeteer from "puppeteer";
+import fetch from "node-fetch";
 
 export async function getLivePopularity(placeId) {
-  const url = `https://www.google.com/maps/place/?q=place_id:${placeId}`;
-  const browser = await puppeteer.launch({
-    headless: "new",
-    args: ["--no-sandbox","--disable-setuid-sandbox"],
-  });
-  const page = await browser.newPage();
   try {
-    await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
-    const html = await page.content();
-    const match = html.match(/"current_popularity":(\d+)/);
-    const val = match ? Number(match[1]) : null;
-    await browser.close();
-    return val;
-  } catch (e) {
-    console.error("scrape error:", e.message);
-    await browser.close();
+    const res = await fetch(`http://localhost:5050/api/popularity/${placeId}`);
+    const data = await res.json();
+    return data.current_popularity ?? null;
+  } catch (err) {
+    console.error("populartimes fetch error:", err.message);
     return null;
   }
 }
