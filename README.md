@@ -1,4 +1,6 @@
 # RU Cafe Hopping?
+Have you ever gotten to a cafe, only to find it too packed for you and your friends? 
+Now you can easily check the estimated capacity of any cafe you love, before you get there!
 
 ## Start Options!
 
